@@ -1,8 +1,8 @@
-import React, { useRef } from "react";
+import React from "react";
 import { useControls } from "leva";
 import { vertex, fragment } from "./shader";
-import { useFrame, useThree } from "@react-three/fiber";
-import { Vector2, Color } from "three";
+import { useRef } from "react";
+import { useFrame } from "@react-three/fiber";
 
 const Model = () => {
   const { pullStrength, liquifyStrength, radius, color } = useControls({
@@ -26,12 +26,6 @@ const Model = () => {
     },
     color: "#ff0000",
   });
-
-  // Get mouse position and viewport
-  const { mouse, viewport } = useThree();
-  const mousePosition = useRef(new Vector2(0, 0));
-  const time = useRef(0);
-  const colorObj = new Color(color);
 
   const uniforms = useRef({
     uMousePosition: { value: mousePosition.current },
@@ -60,17 +54,17 @@ const Model = () => {
     plane.current.material.uniforms.uTime.value = time.current;
     plane.current.material.uniforms.uColor.value = new Color(color);
   });
-
   return (
     <mesh ref={plane}>
       <planeGeometry args={[3, 3, 96, 96]} />{" "}
       {/* Higher resolution for smoother distortion */}
       <shaderMaterial
+        //Vertices
         fragmentShader={fragment}
+        //colors
         vertexShader={vertex}
-        wireframe={false}
+        wireframe={true}
         uniforms={uniforms.current}
-        transparent={true}
       />
     </mesh>
   );
