@@ -1,46 +1,76 @@
-import React from "react";
+import React, { useRef } from "react";
 import { useControls } from "leva";
 import { vertex, fragment } from "./shader";
-import { useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
+import { Vector2, Color } from "three";
 
 const Model = () => {
-  const { amplitude, waveLength } = useControls({
-    amplitude: {
-      value: 0.25,
+  const { pullStrength, liquifyStrength, radius, color } = useControls({
+    pullStrength: {
+      value: 0.3,
       min: 0,
-      max: 5,
-      step: 0.05,
+      max: 1,
+      step: 0.01,
     },
-    waveLength: {
-      value: 5,
+    liquifyStrength: {
+      value: 0.4,
       min: 0,
-      max: 20,
-      step: 1,
+      max: 1.5,
+      step: 0.01,
     },
+    radius: {
+      value: 1.5,
+      min: 0.1,
+      max: 3.0,
+      step: 0.1,
+    },
+    color: "#ff0000",
   });
 
+  // Get mouse position and viewport
+  const { mouse, viewport } = useThree();
+  const mousePosition = useRef(new Vector2(0, 0));
+  const time = useRef(0);
+  const colorObj = new Color(color);
+
   const uniforms = useRef({
-    uAmplitude: { value: amplitude },
-    uWaveLength: { value: waveLength },
+    uMousePosition: { value: mousePosition.current },
+    uPullStrength: { value: pullStrength },
+    uLiquifyStrength: { value: liquifyStrength },
+    uRadius: { value: radius },
+    uTime: { value: 0 },
+    uColor: { value: new Color(colorObj.r, colorObj.g, colorObj.b) },
   });
 
   const plane = useRef();
-  useFrame(() => {
-    plane.current.material.uniforms.uAmplitude.value = amplitude;
-    plane.current.material.uniforms.uWaveLength.value = waveLength;
+  useFrame((state, delta) => {
+    // Update time for animation (slower for smoother flow)
+    time.current += delta * 0.5;
+
+    // Convert normalized mouse position (-1 to 1) to match our plane coordinates
+    mousePosition.current.x = (mouse.x * viewport.width) / 2;
+    mousePosition.current.y = (mouse.y * viewport.height) / 2;
+
+    // Update all uniforms
+    plane.current.material.uniforms.uMousePosition.value =
+      mousePosition.current;
+    plane.current.material.uniforms.uPullStrength.value = pullStrength;
+    plane.current.material.uniforms.uLiquifyStrength.value = liquifyStrength;
+    plane.current.material.uniforms.uRadius.value = radius;
+    plane.current.material.uniforms.uTime.value = time.current;
+    plane.current.material.uniforms.uColor.value = new Color(color);
   });
+
   return (
     <mesh ref={plane}>
-      <planeGeometry args={[3, 3, 35, 35]} />
-      {/* <meshBasicMaterial color="red" wireframe={true} /> */}
+      <planeGeometry args={[3, 3, 96, 96]} />{" "}
+      {/* Higher resolution for smoother distortion */}
       <shaderMaterial
-        //Vertices
         fragmentShader={fragment}
-        //colors
         vertexShader={vertex}
-        wireframe={true}
+        wireframe={false}
         uniforms={uniforms.current}
+        transparent={true}
       />
     </mesh>
   );
